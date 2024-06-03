@@ -27,6 +27,7 @@ const client = new MongoClient(uri, {
 
 const db = client.db("compass");
 const packageColl = db.collection("packages");
+const userColl = db.collection("users");
 
 // const verifyToken = (req, res, next) => {
 //   const token = req.cookies?.token;
@@ -60,15 +61,26 @@ async function run() {
     });
     
     app.get('/packages', async (req, res) => {
-        const limit = parseInt(req.query?.limit);
-        const result = limit ? await packageColl.find().limit(limit).toArray() : await packageColl.find().toArray();
-        res.send(result);
+      const limit = parseInt(req.query?.limit);
+      const result = limit ? await packageColl.find().limit(limit).toArray() : await packageColl.find().toArray();
+      res.send(result);
     });
 
     app.get('/package/:id', async (req, res) => {
-        const id = new ObjectId(req.params.id);
-        const result = await packageColl.findOne({ _id: id });
+      const id = new ObjectId(req.params.id);
+      const result = await packageColl.findOne({ _id: id });
+      res.send(result);
+    });
+
+    app.post('/user', async (req, res) => {
+      const email = req.body.email;
+      const user = await userColl.findOne({ email: email });
+      if (!user) {
+        const result = await userColl.insertOne({ email: email, role: 'user' });
         res.send(result);
+      } else {
+        res.send({message: 'user already exist', insertedId: undefined});
+      }
     });
   } 
   finally {
