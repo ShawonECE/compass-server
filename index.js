@@ -49,22 +49,25 @@ async function run() {
   try {
     await client.connect();
 
-    // app.post('/jwt', async (req, res) => {
-    //   const user = req.body.user;
-    //   const token = jwt.sign({ data: user }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    //   res.cookie('token', token, cookieOptions).send({success: true});
-    // });
-
-    // app.post('/logout', (req, res) => {
-    //     res.clearCookie('token', { ...cookieOptions, maxAge: 0 }).send({success: true});
-    // });
+    app.post('/jwt', async (req, res) => {
+      const email = req.body.email;
+      const token = jwt.sign({ data: email }, process.env.JWT_SECRET, { expiresIn: '1h' });
+      res.send({ token });
+    });
 
     app.get('/', async (req, res) => {
       res.send('Welcome to compass');
     });
     
     app.get('/packages', async (req, res) => {
-        const result = await packageColl.find().toArray();
+        const limit = parseInt(req.query?.limit);
+        const result = limit ? await packageColl.find().limit(limit).toArray() : await packageColl.find().toArray();
+        res.send(result);
+    });
+
+    app.get('/package/:id', async (req, res) => {
+        const id = new ObjectId(req.params.id);
+        const result = await packageColl.findOne({ _id: id });
         res.send(result);
     });
   } 
