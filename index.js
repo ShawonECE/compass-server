@@ -29,6 +29,7 @@ const db = client.db("compass");
 const packageColl = db.collection("packages");
 const userColl = db.collection("users");
 const guideColl = db.collection("guides");
+const storyColl = db.collection("stories");
 
 // const verifyToken = (req, res, next) => {
 //   const token = req.cookies?.token;
@@ -100,6 +101,11 @@ async function run() {
     app.get('/guide/:id', async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await guideColl.findOne({ _id: id });
+      res.send(result);
+    });
+
+    app.get('/stories', async (req, res) => {
+      const result = await storyColl.find().toArray();
       res.send(result);
     });
   } 
