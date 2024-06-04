@@ -63,7 +63,15 @@ async function run() {
     
     app.get('/packages', async (req, res) => {
       const limit = parseInt(req.query?.limit);
-      const result = limit ? await packageColl.find().limit(limit).toArray() : await packageColl.find().toArray();
+      const tourType = req.query?.tourType;
+      let result;
+      if (limit) {
+        result = await packageColl.find().limit(limit).toArray();
+      } else if (tourType) {
+        result = await packageColl.find({ tourType: tourType}).toArray();
+      } else {
+        result = await packageColl.find().toArray();
+      }
       res.send(result);
     });
 
