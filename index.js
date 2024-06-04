@@ -105,7 +105,13 @@ async function run() {
     });
 
     app.get('/stories', async (req, res) => {
-      const result = await storyColl.find().toArray();
+      const limit = parseInt(req.query?.limit);
+      let result;
+      if (limit) {
+        result = await storyColl.find().limit(limit).toArray();
+      } else {
+        result = await storyColl.find().toArray();
+      }
       res.send(result);
     });
   } 
