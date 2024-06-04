@@ -28,6 +28,7 @@ const client = new MongoClient(uri, {
 const db = client.db("compass");
 const packageColl = db.collection("packages");
 const userColl = db.collection("users");
+const guideColl = db.collection("guides");
 
 // const verifyToken = (req, res, next) => {
 //   const token = req.cookies?.token;
@@ -81,6 +82,17 @@ async function run() {
       } else {
         res.send({message: 'user already exist', insertedId: undefined});
       }
+    });
+
+    app.get('/guides', async (req, res) => {
+      const result = await guideColl.find().toArray();
+      res.send(result);
+    });
+
+    app.get('/guide/:id', async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const result = await guideColl.findOne({ _id: id });
+      res.send(result);
     });
   } 
   finally {
