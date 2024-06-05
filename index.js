@@ -114,6 +114,12 @@ async function run() {
       }
       res.send(result);
     });
+
+    app.get('/story/:id', async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const result = await storyColl.findOne({ _id: id });
+      res.send(result);
+    });
   } 
   finally {
     
