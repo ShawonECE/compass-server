@@ -30,6 +30,7 @@ const packageColl = db.collection("packages");
 const userColl = db.collection("users");
 const guideColl = db.collection("guides");
 const storyColl = db.collection("stories");
+const bookingColl = db.collection("bookings");
 
 // const verifyToken = (req, res, next) => {
 //   const token = req.cookies?.token;
@@ -118,6 +119,12 @@ async function run() {
     app.get('/story/:id', async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await storyColl.findOne({ _id: id });
+      res.send(result);
+    });
+
+    app.post('/booking', async (req, res) => {
+      const data = req.body;
+      const result = await bookingColl.insertOne(data);
       res.send(result);
     });
   } 
