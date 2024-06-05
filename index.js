@@ -127,6 +127,18 @@ async function run() {
       const result = await bookingColl.insertOne(data);
       res.send(result);
     });
+
+    app.patch('/rating', async (req, res) => {
+      const data = req.body;
+      const guideId = new ObjectId(data.guideId);
+      const updateDoc = {
+        $set: {
+          feedback: data.newFeedback
+        },
+      };
+      const result = await guideColl.updateOne({_id: guideId}, updateDoc, { upsert: true });
+      res.send(result);
+    });
   } 
   finally {
     
