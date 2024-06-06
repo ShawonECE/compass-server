@@ -94,6 +94,17 @@ async function run() {
       }
     });
 
+    app.get('/users', async (req, res) => {
+      const email = req.query?.email;
+      let result;
+      if (email) {
+        result = await userColl.findOne({ email: email });
+      } else {
+        result = await userColl.find().toArray();
+      }
+      res.send(result);
+    });
+
     app.get('/guides', async (req, res) => {
       const result = await guideColl.find().toArray();
       res.send(result);
@@ -119,6 +130,12 @@ async function run() {
     app.get('/story/:id', async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await storyColl.findOne({ _id: id });
+      res.send(result);
+    });
+
+    app.post('/story', async (req, res) => {
+      const data = req.body;
+      const result = await storyColl.insertOne( data );
       res.send(result);
     });
 
