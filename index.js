@@ -32,22 +32,25 @@ const guideColl = db.collection("guides");
 const storyColl = db.collection("stories");
 const bookingColl = db.collection("bookings");
 
-// const verifyToken = (req, res, next) => {
-//   const token = req.cookies?.token;
-//   console.log(token);
-//   if (!token) {
-//     console.log('No token');
-//     return res.status(401).send({message: 'unauthorized access'});
-//   }
-//   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-//     if (err) {
-//       console.log('Invalid token');
-//       return res.status(401).send({message: 'unauthorized access'});
-//     }
-//     req.user = decoded;
-//     next();
-//   });
-// };
+const verifyToken = (req, res, next) => {
+  if (!req.headers.authorization) {
+    return res.status(401).send({ message: 'unauthorized access' });
+  }
+  const token = req.headers.authorization.split(' ')[1];
+  console.log(token);
+  if (!token) {
+    console.log('No token');
+    return res.status(401).send({message: 'unauthorized access'});
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      console.log('Invalid token');
+      return res.status(401).send({message: 'unauthorized access'});
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
 
 async function run() {
   try {
@@ -142,6 +145,12 @@ async function run() {
     app.post('/booking', async (req, res) => {
       const data = req.body;
       const result = await bookingColl.insertOne(data);
+      res.send(result);
+    });
+
+    app.get('/bookings', verifyToken, async (req, res) => {
+      const email = req.query.email;
+      const result = await bookingColl.find({ email: email }).toArray();
       res.send(result);
     });
 
