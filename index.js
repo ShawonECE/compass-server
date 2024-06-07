@@ -37,14 +37,14 @@ const verifyToken = (req, res, next) => {
     return res.status(401).send({ message: 'unauthorized access' });
   }
   const token = req.headers.authorization.split(' ')[1];
-  console.log(token);
+  // console.log(token);
   if (!token) {
-    console.log('No token');
+    // console.log('No token');
     return res.status(401).send({message: 'unauthorized access'});
   }
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
-      console.log('Invalid token');
+      // console.log('Invalid token');
       return res.status(401).send({message: 'unauthorized access'});
     }
     req.decoded = decoded;
@@ -149,7 +149,10 @@ async function run() {
     });
 
     app.get('/bookings', verifyToken, async (req, res) => {
-      const email = req.query.email;
+      const email = req.query?.email;
+      if (email !== req.decoded.data) {
+        return res.status(403).send({ message: 'Forbidden access' });
+      }
       const result = await bookingColl.find({ email: email }).toArray();
       res.send(result);
     });
@@ -163,6 +166,24 @@ async function run() {
         },
       };
       const result = await guideColl.updateOne({_id: guideId}, updateDoc, { upsert: true });
+      res.send(result);
+    });
+
+    app.patch('/status', async (req, res) => {
+      const data = req.body;
+      const bookingId = new ObjectId(data.bookingId);
+      const updateDoc = {
+        $set: {
+          status: data.status
+        },
+      };
+      const result = await bookingColl.updateOne({_id: bookingId}, updateDoc, { upsert: true });
+      res.send(result);
+    });
+
+    app.delete('/:id', async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const result = await bookingColl.deleteOne({_id: id});
       res.send(result);
     });
   } 
