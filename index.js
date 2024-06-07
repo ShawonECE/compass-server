@@ -31,6 +31,8 @@ const userColl = db.collection("users");
 const guideColl = db.collection("guides");
 const storyColl = db.collection("stories");
 const bookingColl = db.collection("bookings");
+const wishColl = db.collection("wishlist");
+const reqColl = db.collection("guide-requests");
 
 const verifyToken = (req, res, next) => {
   if (!req.headers.authorization) {
@@ -181,9 +183,36 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/:id', async (req, res) => {
+    app.delete('/booking/:id', async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await bookingColl.deleteOne({_id: id});
+      res.send(result);
+    });
+
+    app.post('/wishlist', async (req, res) => {
+      const data = req.body;
+      const result = await wishColl.insertOne(data);
+      res.send(result);
+    });
+
+    app.get('/wishlist', verifyToken, async (req, res) => {
+      const email = req.query?.email;
+      if (email !== req.decoded.data) {
+        return res.status(403).send({ message: 'Forbidden access' });
+      }
+      const result = await wishColl.find({ email: email }).toArray();
+      res.send(result);
+    });
+
+    app.delete('/wishlist/:id', async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const result = await wishColl.deleteOne({_id: id});
+      res.send(result);
+    });
+
+    app.post('/guide-request', async (req, res) => {
+      const data = req.body;
+      const result = await reqColl.insertOne( data );
       res.send(result);
     });
   } 
