@@ -49,10 +49,26 @@ const verifyToken = (req, res, next) => {
       // console.log('Invalid token');
       return res.status(401).send({message: 'unauthorized access'});
     }
+    // console.log(decoded);
     req.decoded = decoded;
     next();
   });
 };
+
+const verifyAdmin = async (req, res, next) => {
+  const email = req.decoded.data;
+  const query = { email: email };
+  // console.log(email);
+  const user = await userColl.findOne(query);
+  // console.log(user);
+  const isAdmin = user?.role === 'admin';
+  if (!isAdmin) {
+    // console.log('not admin');
+    return res.status(403).send({ message: 'forbidden access' });
+  }
+  next();
+}
+
 
 async function run() {
   try {
@@ -88,6 +104,12 @@ async function run() {
       res.send(result);
     });
 
+    app.post('/package', verifyToken, verifyAdmin, async (req, res) => {
+      const data = req.body;
+      const result = await packageColl.insertOne(data);
+      res.send(result);
+    });
+
     app.post('/user', async (req, res) => {
       const email = req.body.email;
       const user = await userColl.findOne({ email: email });
@@ -99,14 +121,9 @@ async function run() {
       }
     });
 
-    app.get('/users', async (req, res) => {
+    app.get('/user', async (req, res) => {
       const email = req.query?.email;
-      let result;
-      if (email) {
-        result = await userColl.findOne({ email: email });
-      } else {
-        result = await userColl.find().toArray();
-      }
+      const result = await userColl.findOne({ email: email });
       res.send(result);
     });
 
@@ -214,6 +231,19 @@ async function run() {
       const data = req.body;
       const result = await reqColl.insertOne( data );
       res.send(result);
+    });
+
+    app.get('/guide-request', verifyToken, async (req, res) => {
+      const email = req.query?.email;
+      if (email !== req.decoded.data) {
+        return res.status(403).send({ message: 'Forbidden access' });
+      }
+      const result = await reqColl.findOne({ email: email });
+      if (result?._id) {
+        res.send({ requested: true });
+      } else {
+        res.send({ requested: false });
+      }  
     });
   } 
   finally {
