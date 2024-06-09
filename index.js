@@ -33,6 +33,7 @@ const storyColl = db.collection("stories");
 const bookingColl = db.collection("bookings");
 const wishColl = db.collection("wishlist");
 const reqColl = db.collection("guide-requests");
+const paymentColl = db.collection("payments");
 
 const verifyToken = (req, res, next) => {
   if (!req.headers.authorization) {
@@ -63,6 +64,20 @@ const verifyAdmin = async (req, res, next) => {
   // console.log(user);
   const isAdmin = user?.role === 'admin';
   if (!isAdmin) {
+    // console.log('not admin');
+    return res.status(403).send({ message: 'forbidden access' });
+  }
+  next();
+}
+
+const verifyGuide = async (req, res, next) => {
+  const email = req.decoded.data;
+  const query = { email: email };
+  // console.log(email);
+  const user = await userColl.findOne(query);
+  // console.log(user);
+  const isGuide = user?.role === 'guide';
+  if (!isGuide) {
     // console.log('not admin');
     return res.status(403).send({ message: 'forbidden access' });
   }
@@ -111,19 +126,37 @@ async function run() {
     });
 
     app.post('/user', async (req, res) => {
-      const email = req.body.email;
+      const data = req.body;
+      const email = data.email;
       const user = await userColl.findOne({ email: email });
-      if (!user) {
-        const result = await userColl.insertOne({ email: email, role: 'user' });
+      if (!user && data.email && data.name) {
+        data.role = 'user';
+        const result = await userColl.insertOne(data);
         res.send(result);
       } else {
-        res.send({message: 'user already exist', insertedId: undefined});
+        res.send({ insertedId: undefined });
       }
     });
 
     app.get('/user', async (req, res) => {
       const email = req.query?.email;
       const result = await userColl.findOne({ email: email });
+      res.send(result);
+    });
+
+    app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
+      const result = await userColl.find().toArray();
+      res.send(result);
+    });
+
+    app.patch('/change-role', verifyToken, verifyAdmin, async (req, res) => {
+      const data = req.body;
+      const updateDoc = {
+        $set: {
+          role: data.role
+        },
+      };
+      const result = await userColl.updateOne({email: req.body.email}, updateDoc, { upsert: true });
       res.send(result);
     });
 
@@ -135,6 +168,18 @@ async function run() {
     app.get('/guide/:id', async (req, res) => {
       const id = new ObjectId(req.params.id);
       const result = await guideColl.findOne({ _id: id });
+      res.send(result);
+    });
+
+    app.get('/guide-profile', verifyToken, verifyGuide, async (req, res) => {
+      const email = req.query.email;
+      const result = await guideColl.findOne({ email: email });
+      res.send(result);
+    });
+
+    app.post('/guide', verifyToken, verifyAdmin, async (req, res) => {
+      const data = req.body;
+      const result = await guideColl.insertOne(data);
       res.send(result);
     });
 
@@ -176,6 +221,12 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/assigned-bookings', verifyToken, verifyGuide, async (req, res) => {
+      const id = req.query.guideId;
+      const result = await bookingColl.find({ guideId: id }).toArray();
+      res.send(result);
+    });
+
     app.patch('/rating', async (req, res) => {
       const data = req.body;
       const guideId = new ObjectId(data.guideId);
@@ -188,12 +239,24 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/status', async (req, res) => {
+    app.patch('/status', verifyToken, verifyGuide, async (req, res) => {
       const data = req.body;
       const bookingId = new ObjectId(data.bookingId);
       const updateDoc = {
         $set: {
           status: data.status
+        },
+      };
+      const result = await bookingColl.updateOne({_id: bookingId}, updateDoc, { upsert: true });
+      res.send(result);
+    });
+
+    app.patch('/confirm-booking', async (req, res) => {
+      const data = req.body;
+      const bookingId = new ObjectId(data.bookingId);
+      const updateDoc = {
+        $set: {
+          status: 'paid'
         },
       };
       const result = await bookingColl.updateOne({_id: bookingId}, updateDoc, { upsert: true });
@@ -244,6 +307,38 @@ async function run() {
       } else {
         res.send({ requested: false });
       }  
+    });
+
+    app.get('/all-guide-request', verifyToken, verifyAdmin, async (req, res) => {
+      const result = await reqColl.find().toArray();
+      res.send(result);
+    });
+
+    app.delete('/guide-request', verifyToken, verifyAdmin, async (req, res) => {
+      const email = req.query.email;
+      const result = await reqColl.deleteOne({email: email});
+      res.send(result);
+    });
+
+    app.post('/create-payment-intent', async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ['card']
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    }); 
+
+    app.post('/payments', async (req, res) => {
+      const data = req.body;
+      const result = await paymentColl.insertOne( data );
+      res.send(result);
     });
   } 
   finally {
