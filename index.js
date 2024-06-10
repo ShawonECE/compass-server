@@ -34,6 +34,8 @@ const bookingColl = db.collection("bookings");
 const wishColl = db.collection("wishlist");
 const reqColl = db.collection("guide-requests");
 const paymentColl = db.collection("payments");
+const blogColl = db.collection("blogs");
+const messageColl = db.collection("messages");
 
 const verifyToken = (req, res, next) => {
   if (!req.headers.authorization) {
@@ -338,6 +340,23 @@ async function run() {
     app.post('/payments', async (req, res) => {
       const data = req.body;
       const result = await paymentColl.insertOne( data );
+      res.send(result);
+    });
+
+    app.get('/blogs', async (req, res) => {
+      const result = await blogColl.find().toArray();
+      res.send(result);
+    });
+
+    app.get('/blog/:id', async (req, res) => {
+      const id = new ObjectId(req.params.id);
+      const result = await blogColl.findOne({ _id: id });
+      res.send(result);
+    });
+
+    app.post('/message', async (req, res) => {
+      const data = req.body;
+      const result = await messageColl.insertOne(data);
       res.send(result);
     });
   } 
