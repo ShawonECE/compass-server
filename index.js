@@ -9,7 +9,7 @@ const stripe = require("stripe")(process.env.STRIPE_SECRET);
 // middlewares
 app.use(cors(
   {
-    origin: ['http://localhost:5173'],
+    origin: ['http://localhost:5173', 'https://compass-55799.web.app', 'https://compass-55799.firebaseapp.com'],
   }
 ));
 app.use(express.json());
@@ -89,7 +89,7 @@ const verifyGuide = async (req, res, next) => {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
 
     app.post('/jwt', async (req, res) => {
       const email = req.body.email;
@@ -147,7 +147,30 @@ async function run() {
     });
 
     app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
-      const result = await userColl.find().toArray();
+      const role = req.query?.role;
+      const email = req.query?.email;
+      const name = req.query?.name;
+      let result;
+      if (role || name || email) {
+        const obj = {};
+        if (role) {
+          obj.role = role;
+        }
+        if (name) {
+          obj.name = name;
+        }
+        if (email) {
+          obj.email = email;
+        }
+        const pipeline = [
+          {
+            $match: obj
+          }
+        ];
+        result = await userColl.aggregate(pipeline).toArray();
+      } else {
+        result = await userColl.find().toArray();
+      }
       res.send(result);
     });
 
