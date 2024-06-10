@@ -148,28 +148,21 @@ async function run() {
 
     app.get('/users', verifyToken, verifyAdmin, async (req, res) => {
       const role = req.query?.role;
-      const email = req.query?.email;
-      const name = req.query?.name;
+      const keyword = req.query?.keyword;
       let result;
-      if (role || name || email) {
-        const obj = {};
+      
+      if (role) {
         if (role) {
-          obj.role = role;
+          const pipeline = [{ $match: { role: role } }];
+          result = await userColl.aggregate(pipeline).toArray();
         }
-        if (name) {
-          obj.name = name;
-        }
-        if (email) {
-          obj.email = email;
-        }
-        const pipeline = [
-          {
-            $match: obj
-          }
-        ];
-        result = await userColl.aggregate(pipeline).toArray();
       } else {
         result = await userColl.find().toArray();
+      }
+
+      if (keyword) {
+        let filtered = result.filter(user => user.name.toLowerCase().includes(keyword) || user.email.toLowerCase().includes(keyword));
+        return res.send(filtered);
       }
       res.send(result);
     });
